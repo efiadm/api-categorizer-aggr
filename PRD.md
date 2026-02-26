@@ -1,150 +1,142 @@
 # Planning Guide
 
-A comprehensive API directory and testing platform that allows users to explore, categorize, and interact with 1000 different APIs across various domains with intelligent search and filtering capabilities.
+An intelligent chat interface that connects to 1000+ APIs behind the scenes, allowing users to ask natural language questions and receive answers powered by relevant API data without needing to know which APIs exist or how to use them.
 
 **Experience Qualities**:
-1. **Efficient** - Users can quickly find and test APIs from a massive collection through smart categorization and powerful search
-2. **Informative** - Clear presentation of API details, categories, and usage examples helps users understand capabilities at a glance
-3. **Interactive** - Live API testing with real-time responses makes exploration engaging and practical
+1. **Conversational** - Natural chat interface where users ask questions in plain language and receive intelligent responses
+2. **Intelligent** - System automatically determines which APIs to query based on the user's question
+3. **Informative** - Responses synthesize data from multiple APIs into coherent, helpful answers
 
 **Complexity Level**: Complex Application (advanced functionality, likely with multiple views)
-This application manages a large dataset of 1000 APIs, provides categorization, search, filtering, detailed views, and live API interaction capabilities requiring sophisticated state management and data organization.
+This application uses AI to interpret user questions, intelligently select and query from 1000 APIs, and synthesize responses in a conversational chat interface with persistent history.
 
 ## Essential Features
 
-**API Directory Browser**
-- Functionality: Display categorized collection of 1000 APIs with metadata (name, description, category, endpoint)
-- Purpose: Provide organized access to the complete API collection
-- Trigger: User opens the application
-- Progression: App loads → Display grid/list of APIs → Show category filters and search → User browses collection
-- Success criteria: All 1000 APIs load and display correctly with accurate categorization
+**Natural Language Chat Interface**
+- Functionality: Chat UI where users type questions and receive AI-generated responses
+- Purpose: Provide intuitive access to API data without requiring API knowledge
+- Trigger: User opens application and types a question
+- Progression: User types question → Press enter → AI analyzes question → Shows thinking indicator → Response appears → Chat updates
+- Success criteria: Smooth message flow, clear user/assistant distinction, real-time typing indicators
 
-**Smart Categorization System**
-- Functionality: Automatically organize APIs into logical categories (Weather, Finance, Social Media, Data, AI/ML, etc.)
-- Purpose: Make large collection navigable and discoverable
-- Trigger: User selects category filter or views category distribution
-- Progression: User clicks category → Filter applied → Display only matching APIs → Show count per category
-- Success criteria: APIs grouped logically, multiple categories supported, clear visual distinction
+**Intelligent API Selection**
+- Functionality: AI analyzes user questions to determine which APIs are relevant
+- Purpose: Automatically connect user questions to appropriate data sources
+- Trigger: User submits a question in chat
+- Progression: Question received → AI evaluates intent → Matches to API categories → Selects 1-5 relevant APIs → Indicates which APIs being queried
+- Success criteria: Relevant APIs selected 90%+ of time, users see which APIs are being used
 
-**Intelligent Search & Filter**
-- Functionality: Real-time search across API names, descriptions, and categories with multi-filter support
-- Purpose: Help users quickly find specific APIs from the 1000+ collection
-- Trigger: User types in search box or applies filters
-- Progression: User enters query → Results filter instantly → Display match count → Clear filters available
-- Success criteria: Sub-100ms search response, accurate matching, combined filters work correctly
+**Multi-API Response Synthesis**
+- Functionality: Combine data from multiple API sources into coherent natural language answer
+- Purpose: Provide comprehensive answers that leverage multiple data sources
+- Trigger: After APIs selected for user question
+- Progression: APIs selected → Simulated API calls → Data aggregated → AI synthesizes response → Stream response to user
+- Success criteria: Responses feel natural, cite sources, combine multiple APIs when appropriate
 
-**API Detail View**
-- Functionality: Show comprehensive information about selected API (endpoint, method, parameters, authentication)
-- Purpose: Provide all necessary information to understand and use an API
-- Trigger: User clicks on an API card
-- Progression: Click API → Open detail modal/panel → Display full specs → Show example request/response
-- Success criteria: All API metadata displayed clearly, examples are helpful
+**Conversation History**
+- Functionality: Persistent chat history with ability to reference previous messages
+- Purpose: Enable multi-turn conversations and context retention
+- Trigger: Any message sent or app reopened
+- Progression: Message sent → Saved to useKV → Displayed in chat → Available on reload → Scrollable history
+- Success criteria: All messages persist, history loads instantly, smooth scrolling
 
-**Live API Tester**
-- Functionality: Interactive form to test API calls with custom parameters and view responses
-- Purpose: Allow users to experiment with APIs without leaving the app
-- Trigger: User clicks "Test API" button in detail view
-- Progression: Open tester → Input parameters → Submit request → Display response → Show status/errors
-- Success criteria: Successfully makes real API calls, displays formatted responses, handles errors gracefully
-
-**Favorites & History**
-- Functionality: Save favorite APIs and track recently viewed/tested APIs
-- Purpose: Quick access to frequently used APIs
-- Trigger: User clicks favorite icon or views an API
-- Progression: Click favorite → API saved → Accessible from favorites view → Persists across sessions
-- Success criteria: Favorites persist using useKV, history shows last 20 interactions
+**API Attribution Display**
+- Functionality: Show which APIs were used to generate each answer
+- Purpose: Transparency about data sources and educate users about API capabilities
+- Trigger: Response generated from API data
+- Progression: Response displays → Small badges show API sources → Hover for details → Click to see API info
+- Success criteria: Clear attribution, non-intrusive UI, informative tooltips
 
 ## Edge Case Handling
-- **Empty Search Results**: Display helpful "No APIs found" message with suggestion to try different keywords or clear filters
-- **API Request Failures**: Show clear error messages with status codes and retry options when test calls fail
-- **Missing API Data**: Handle incomplete API metadata gracefully with fallback values and indicators
-- **Slow Loading**: Display skeleton loaders for initial 1000 API load to maintain perceived performance
-- **No Favorites Yet**: Show welcoming empty state encouraging users to explore and save APIs
+- **Empty Conversation**: Display welcoming message explaining how to ask questions and example queries
+- **Unclear Questions**: AI responds with clarifying questions to better understand user intent
+- **No Relevant APIs**: Gracefully explain that no suitable APIs were found for the question, suggest related topics
+- **API Failures**: Show which specific APIs failed while still providing partial results from successful ones
+- **Very Long Conversations**: Automatically summarize older context to maintain performance
 
 ## Design Direction
-The design should evoke a sense of technical sophistication and developer-friendly clarity, reminiscent of modern API documentation platforms with a vibrant, energetic color palette that makes exploring 1000 APIs feel exciting rather than overwhelming.
+The design should evoke a modern AI assistant interface with a sense of intelligence and capability, combining the familiar comfort of messaging apps with the technical sophistication of developer tools through vibrant colors and smooth interactions.
 
 ## Color Selection
-A bold, tech-forward color scheme with electric accents against a dark sophisticated base.
+A tech-forward chat interface with high contrast and vibrant accent colors that feel modern and energetic.
 
-- **Primary Color**: Deep Purple `oklch(0.35 0.15 285)` - Conveys technical sophistication and premium quality
-- **Secondary Colors**: Dark Slate `oklch(0.25 0.02 260)` for cards/surfaces, creating depth and hierarchy
-- **Accent Color**: Electric Cyan `oklch(0.75 0.15 195)` - High-energy highlight for CTAs, active states, and important metrics
+- **Primary Color**: Deep Purple `oklch(0.35 0.15 285)` - Represents AI intelligence and premium quality
+- **Secondary Colors**: Rich Dark `oklch(0.15 0.02 270)` for messages background, Dark Slate `oklch(0.25 0.02 260)` for user messages
+- **Accent Color**: Electric Cyan `oklch(0.75 0.15 195)` - Highlights AI responses, loading states, and interactive elements
 - **Foreground/Background Pairings**: 
   - Background (Rich Dark `oklch(0.15 0.02 270)`): Soft White text `oklch(0.95 0.01 285)` - Ratio 11.2:1 ✓
-  - Primary (Deep Purple): White text `oklch(0.98 0 0)` - Ratio 6.8:1 ✓
+  - User Message (Dark Slate `oklch(0.25 0.02 260)`): Light text `oklch(0.90 0.01 285)` - Ratio 9.3:1 ✓
+  - AI Message (Muted `oklch(0.22 0.02 265)`): Light text `oklch(0.95 0.01 285)` - Ratio 10.8:1 ✓
   - Accent (Electric Cyan): Dark text `oklch(0.15 0.02 270)` - Ratio 10.5:1 ✓
-  - Card (Dark Slate): Light text `oklch(0.90 0.01 285)` - Ratio 9.3:1 ✓
 
 ## Font Selection
-Typefaces should communicate technical precision while maintaining excellent readability for scanning large amounts of API information.
+Typography should balance conversational readability for chat messages with technical precision for API attribution and code elements.
 
-- **Primary Font**: JetBrains Mono for code, endpoints, and technical details
-- **Secondary Font**: Space Grotesk for headings and UI labels, providing geometric clarity
+- **Primary Font**: Space Grotesk for all chat text and UI labels
+- **Secondary Font**: JetBrains Mono for API names, endpoints, and technical details
 
 **Typographic Hierarchy**:
-- H1 (Page Title): Space Grotesk Bold/32px/tight letter spacing
-- H2 (Category Headers): Space Grotesk Semibold/24px/normal spacing
-- H3 (API Names): Space Grotesk Medium/18px/normal spacing
-- Body (Descriptions): Space Grotesk Regular/15px/relaxed line height
-- Code (Endpoints): JetBrains Mono Regular/14px/monospace tracking
+- H1 (App Title): Space Grotesk Bold/28px/tight letter spacing
+- H2 (Section Headers): Space Grotesk Semibold/20px/normal spacing
+- Chat Messages: Space Grotesk Regular/15px/1.6 line height for comfortable reading
+- API Badges: JetBrains Mono Medium/13px/tight tracking
+- Input Field: Space Grotesk Regular/15px/normal spacing
 
 ## Animations
-Animations should enhance the feeling of responsiveness and provide satisfying feedback when exploring the large API collection.
+Animations should create a responsive, fluid chat experience with smooth message appearances and subtle feedback.
 
-- **Search/Filter**: Smooth 200ms fade-in for filtered results with stagger effect for cards
-- **Card Interactions**: Subtle lift on hover (4px translate-y) with 150ms ease-out, scale(1.02) for engagement
-- **Detail Panel**: Slide-in from right (300ms) with backdrop fade for modal context
-- **Category Switching**: Crossfade transition (250ms) when switching between category views
-- **Test API**: Pulse animation on submit button, smooth spinner during loading, success checkmark animation
+- **Message Appearance**: New messages fade-in and slide up (200ms) with slight stagger for multiple elements
+- **Typing Indicator**: Pulsing dots animation for AI thinking state (800ms loop)
+- **Input Focus**: Smooth glow effect on input field (150ms) with accent color
+- **API Badge Reveal**: API source badges slide in after message completes (250ms)
+- **Scroll Behavior**: Smooth auto-scroll to new messages (300ms ease-out)
+- **Send Button**: Scale pulse on click (100ms) with ripple effect
 
 ## Component Selection
 
 **Components**:
-- **Card**: Primary container for each API listing with hover effects and click handlers
-- **Dialog**: For detailed API information and testing interface
-- **Input**: Search field with instant feedback and clear button
-- **Badge**: Category tags and status indicators (REST, GraphQL, etc.)
-- **Button**: CTAs for testing, favoriting, and filtering actions
-- **Tabs**: Switching between All/Favorites/History views
-- **ScrollArea**: Smooth scrolling for large API lists
-- **Separator**: Visual breaks between sections in detail view
-- **Command**: Quick search/filter palette (Cmd+K style)
-- **Skeleton**: Loading states for initial API fetch
+- **ScrollArea**: Chat message container with smooth scrolling
+- **Input**: Message input field with send button
+- **Badge**: API source attribution tags
+- **Button**: Send message, clear chat, example questions
+- **Card**: Message bubbles for user and assistant
+- **Tooltip**: Hover details for API badges
+- **Separator**: Visual breaks between conversation sections
+- **Skeleton**: Loading placeholder for message generation
 
 **Customizations**:
-- Custom API card component with gradient borders on hover
-- API category filter sidebar with count badges
-- Formatted code block component for displaying endpoints and responses
-- Status indicator component (active/deprecated/beta)
+- Custom message bubble component with user/assistant variants
+- Typing indicator component with animated dots
+- API source badge with icon and hover card
+- Example question chips for empty state
+- Welcome message component
 
 **States**:
-- Buttons: Default has solid background, hover brightens by 10%, active scales down 0.98, disabled at 40% opacity
-- Input: Focus shows accent glow ring, filled shows subtle success indicator
-- Cards: Rest state has subtle border, hover lifts with shadow, selected has accent border
-- Badges: Different variants for each category with matching accent colors
+- Input: Default with placeholder, focus with accent glow, disabled while processing, filled with text
+- Send Button: Default enabled, hover brightens, active scales, disabled (grayed) while sending
+- Messages: Appear with fade-in, user messages right-aligned with different color, AI messages left-aligned
+- API Badges: Subtle appearance, hover shows full API details, clickable for more info
 
 **Icon Selection**:
-- MagnifyingGlass for search
-- Funnel for filters
-- Star/StarFill for favorites toggle
-- Clock for history
-- Play for test API action
-- Code for API endpoints
-- Check/X for success/error states
-- CaretRight for navigation/expansion
+- PaperPlaneRight for send message
+- Sparkle for AI responses
+- CircleNotch (spinning) for loading
+- Database for API sources
+- Chat for conversation
+- Trash for clear history
+- Question for example prompts
 
 **Spacing**:
-- Container padding: p-6 for main content, p-4 for cards
-- Gap between cards: gap-4 in grid layout
-- Section spacing: space-y-6 for major sections
-- Form field spacing: space-y-4
-- Inline elements: gap-2 for buttons/badges
+- Message bubbles: mb-4 between messages, p-3 internal padding
+- Input area: p-4 container, gap-2 between input and button
+- API badges: gap-1 between badges, mt-2 from message
+- Chat container: px-4 py-6 for main area
+- Maximum message width: max-w-3xl for readability
 
 **Mobile**:
-- Stack filters vertically above content on mobile
-- Single column card grid below 768px
-- Bottom sheet for API details instead of side panel
-- Sticky search bar at top
-- Collapsible category filters with accordion
-- Touch-friendly button sizes (min 44px height)
+- Full-width messages with reduced horizontal padding
+- Larger touch targets for send button (min 44px)
+- Fixed input at bottom with safe-area-inset
+- Collapsible API attribution on mobile
+- Scroll to bottom button appears when not at bottom
+- Optimized keyboard handling to avoid input obstruction

@@ -11,9 +11,14 @@ export interface API {
   documentation?: string
 }
 
-export type ViewMode = 'all' | 'favorites' | 'history'
-
-export interface HistoryItem {
-  apiId: string
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
   timestamp: number
+  apiSources?: API[]
+}
+
+export interface ConversationHistory {
+  messages: ChatMessage[]
 }

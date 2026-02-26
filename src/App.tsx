@@ -1,31 +1,32 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
-import { MagnifyingGlass, Funnel, Star, Clock, X } from '@phosphor-icons/react'
-import { APICard } from '@/components/APICard'
-import { APIDetailDialog } from '@/components/APIDetailDialog'
-import type { API, ViewMode, HistoryItem } from '@/lib/types'
-import { generateAPIs, getCategories, filterAPIs } from '@/lib/api-data'
+import { PaperPlaneRight, Trash, Sparkle } from '@phosphor-icons/react'
+import { ChatMessage } from '@/components/ChatMessage'
+import { TypingIndicator } from '@/components/TypingIndicator'
+import type { API, ChatMessage as ChatMessageType } from '@/lib/types'
+import { generateAPIs } from '@/lib/api-data'
+import { processUserQuestion } from '@/lib/chat-service'
 import { Toaster } from '@/components/ui/sonner'
-import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+
+const EXAMPLE_QUESTIONS = [
+  "What's the weather like in Tokyo?",
+  "Show me the latest sports scores",
+  "Find me healthy dinner recipes",
+  "What are the current stock prices?",
+]
 
 function App() {
   const [apis, setApis] = useState<API[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedAPI, setSelectedAPI] = useState<API | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<ViewMode>('all')
-  const [showFilters, setShowFilters] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+  const [isProcessing, setIsProcessing] = useState(false)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  const [favorites, setFavorites] = useKV<string[]>('api-favorites', [])
-  const [history, setHistory] = useKV<HistoryItem[]>('api-history', [])
+  const [messages, setMessages] = useKV<ChatMessageType[]>('chat-messages', [])
 
   useEffect(() => {
     const loadAPIs = async () => {
@@ -37,205 +38,187 @@ function App() {
     loadAPIs()
   }, [])
 
-  const categories = useMemo(() => getCategories(apis), [apis])
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight
+      }
+    }
+  }, [messages, isProcessing])
 
-  const filteredAPIs = useMemo(() => {
-    let result = apis
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isProcessing || apis.length === 0) return
 
-    if (viewMode === 'favorites') {
-      result = apis.filter(api => favorites?.includes(api.id))
-    } else if (viewMode === 'history') {
-      const historyIds = new Set(history?.map(h => h.apiId) || [])
-      result = apis.filter(api => historyIds.has(api.id))
-      result.sort((a, b) => {
-        const aHistory = history?.find(h => h.apiId === a.id)
-        const bHistory = history?.find(h => h.apiId === b.id)
-        return (bHistory?.timestamp || 0) - (aHistory?.timestamp || 0)
-      })
-      return result
+    const userMessage: ChatMessageType = {
+      id: `msg-${Date.now()}`,
+      role: 'user',
+      content: inputValue.trim(),
+      timestamp: Date.now(),
     }
 
-    return filterAPIs(result, searchQuery, selectedCategory)
-  }, [apis, searchQuery, selectedCategory, viewMode, favorites, history])
+    setMessages((currentMessages) => [...(currentMessages || []), userMessage])
+    setInputValue('')
+    setIsProcessing(true)
 
-  const toggleFavorite = (apiId: string) => {
-    setFavorites(currentFavorites => {
-      const favs = currentFavorites || []
-      if (favs.includes(apiId)) {
-        return favs.filter(id => id !== apiId)
+    try {
+      const { response, apiSources } = await processUserQuestion(userMessage.content, apis)
+
+      const assistantMessage: ChatMessageType = {
+        id: `msg-${Date.now()}-assistant`,
+        role: 'assistant',
+        content: response,
+        timestamp: Date.now(),
+        apiSources: apiSources.length > 0 ? apiSources : undefined,
       }
-      return [...favs, apiId]
-    })
+
+      setMessages((currentMessages) => [...(currentMessages || []), assistantMessage])
+    } catch (error) {
+      console.error('Failed to process message:', error)
+      toast.error('Failed to process your message. Please try again.')
+      
+      const errorMessage: ChatMessageType = {
+        id: `msg-${Date.now()}-error`,
+        role: 'assistant',
+        content: "I'm having trouble processing your request right now. Please try again in a moment.",
+        timestamp: Date.now(),
+      }
+      setMessages((currentMessages) => [...(currentMessages || []), errorMessage])
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
-  const handleAPIClick = (api: API) => {
-    setSelectedAPI(api)
-    setDialogOpen(true)
-    
-    setHistory(currentHistory => {
-      const hist = currentHistory || []
-      const filtered = hist.filter(h => h.apiId !== api.id)
-      return [{ apiId: api.id, timestamp: Date.now() }, ...filtered].slice(0, 20)
-    })
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
   }
 
-  const clearSearch = () => {
-    setSearchQuery('')
-    setSelectedCategory(null)
+  const handleExampleClick = (question: string) => {
+    setInputValue(question)
+  }
+
+  const handleClearChat = () => {
+    setMessages([])
+    toast.success('Chat history cleared')
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="relative">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,oklch(0.35_0.15_285/0.15),transparent_50%),radial-gradient(circle_at_70%_60%,oklch(0.75_0.15_195/0.1),transparent_50%)]" />
-        
-        <div className="relative">
-          <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-10">
-            <div className="container mx-auto px-4 py-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent">
-                    API Explorer
-                  </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Discover and test 1000+ APIs
-                  </p>
-                </div>
-                <Badge variant="secondary" className="text-lg px-4 py-2">
-                  {apis.length} APIs
-                </Badge>
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,oklch(0.35_0.15_285/0.15),transparent_50%),radial-gradient(circle_at_70%_60%,oklch(0.75_0.15_195/0.1),transparent_50%)]" />
+      
+      <div className="relative flex flex-col h-screen">
+        <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 px-4 py-4 flex-shrink-0">
+          <div className="container mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+                <Sparkle weight="fill" className="w-6 h-6 text-background" />
               </div>
-
-              <div className="flex gap-2 flex-wrap">
-                <div className="relative flex-1 min-w-[200px]">
-                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search APIs by name, category, or endpoint..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-10"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={clearSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                <Button
-                  variant={showFilters ? 'default' : 'outline'}
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="gap-2"
-                >
-                  <Funnel className="w-4 h-4" />
-                  Filters
-                </Button>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent">
+                  API Chat
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Ask anything - powered by {apis.length} APIs
+                </p>
               </div>
+            </div>
+            {(messages && messages.length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearChat}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <Trash className="w-4 h-4" />
+                Clear
+              </Button>
+            )}
+          </div>
+        </header>
 
-              {showFilters && (
-                <div className="mt-4 p-4 bg-card rounded-lg border border-border">
-                  <h3 className="text-sm font-semibold mb-2">Categories</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant={selectedCategory === null ? 'default' : 'outline'}
-                      onClick={() => setSelectedCategory(null)}
-                    >
-                      All
-                    </Button>
-                    {categories.map(({ category, count }) => (
-                      <Button
-                        key={category}
-                        size="sm"
-                        variant={selectedCategory === category ? 'default' : 'outline'}
-                        onClick={() => setSelectedCategory(category)}
-                        className="gap-2"
+        <div className="flex-1 overflow-hidden flex flex-col container mx-auto">
+          <ScrollArea ref={scrollAreaRef} className="flex-1 px-4">
+            <div className="py-6 max-w-4xl mx-auto">
+              {loading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center space-y-3">
+                    <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin mx-auto" />
+                    <p className="text-sm text-muted-foreground">Loading API catalog...</p>
+                  </div>
+                </div>
+              )}
+
+              {!loading && (!messages || messages.length === 0) && (
+                <div className="flex flex-col items-center justify-center py-12 space-y-6">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
+                    <Sparkle weight="fill" className="w-10 h-10 text-accent" />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h2 className="text-2xl font-bold">Welcome to API Chat</h2>
+                    <p className="text-muted-foreground max-w-md">
+                      Ask me anything! I'll automatically search through {apis.length} APIs to find the information you need.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 w-full max-w-md">
+                    <p className="text-sm font-medium text-muted-foreground">Try asking:</p>
+                    {EXAMPLE_QUESTIONS.map((question, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleExampleClick(question)}
+                        className="text-left p-3 rounded-lg bg-card border border-border hover:border-accent/50 transition-colors text-sm"
                       >
-                        {category}
-                        <Badge variant="secondary" className="ml-1">
-                          {count}
-                        </Badge>
-                      </Button>
+                        {question}
+                      </button>
                     ))}
                   </div>
                 </div>
               )}
+
+              {!loading && messages && messages.length > 0 && (
+                <div className="space-y-1">
+                  {messages.map((message) => (
+                    <ChatMessage key={message.id} message={message} />
+                  ))}
+                  {isProcessing && <TypingIndicator />}
+                </div>
+              )}
             </div>
-          </header>
+          </ScrollArea>
 
-          <main className="container mx-auto px-4 py-8">
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-              <TabsList className="mb-6">
-                <TabsTrigger value="all" className="gap-2">
-                  All APIs
-                </TabsTrigger>
-                <TabsTrigger value="favorites" className="gap-2">
-                  <Star weight="fill" className="w-4 h-4" />
-                  Favorites ({favorites?.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="history" className="gap-2">
-                  <Clock weight="fill" className="w-4 h-4" />
-                  History ({history?.length || 0})
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value={viewMode}>
-                {loading ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <Skeleton key={i} className="h-48 w-full" />
-                    ))}
-                  </div>
-                ) : filteredAPIs.length === 0 ? (
-                  <div className="text-center py-16">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-                      <MagnifyingGlass className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">No APIs found</h3>
-                    <p className="text-muted-foreground mb-4">
-                      {viewMode === 'favorites'
-                        ? 'You haven\'t favorited any APIs yet'
-                        : viewMode === 'history'
-                        ? 'You haven\'t viewed any APIs yet'
-                        : 'Try adjusting your search or filters'}
-                    </p>
-                    {(searchQuery || selectedCategory) && viewMode === 'all' && (
-                      <Button onClick={clearSearch} variant="outline">
-                        Clear filters
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <div className="mb-4 text-sm text-muted-foreground">
-                      Showing {filteredAPIs.length} {filteredAPIs.length === 1 ? 'API' : 'APIs'}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filteredAPIs.map((api) => (
-                        <APICard
-                          key={api.id}
-                          api={api}
-                          isFavorite={favorites?.includes(api.id) || false}
-                          onToggleFavorite={toggleFavorite}
-                          onClick={() => handleAPIClick(api)}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </TabsContent>
-            </Tabs>
-          </main>
+          <div className="border-t border-border/50 backdrop-blur-sm bg-background/80 p-4 flex-shrink-0">
+            <div className="container mx-auto max-w-4xl">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ask me anything..."
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  disabled={isProcessing || loading}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isProcessing || loading}
+                  className="gap-2 px-6"
+                >
+                  {isProcessing ? (
+                    <div className="w-5 h-5 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : (
+                    <PaperPlaneRight weight="fill" className="w-5 h-5" />
+                  )}
+                  Send
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Responses are generated using AI and may not reflect real data
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-
-      <APIDetailDialog
-        api={selectedAPI}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
 
       <Toaster />
     </div>
